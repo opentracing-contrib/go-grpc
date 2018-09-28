@@ -31,7 +31,7 @@ func TestSpanTags(t *testing.T) {
 			"response_code":  code,
 			"response_class": ErrorClass(err),
 		}
-		if err != nil {
+		if err != nil && ErrorClass(err) != Success {
 			expectedTags["error"] = true
 		}
 		assert.Equal(t, expectedTags, rawSpan.Tags())
