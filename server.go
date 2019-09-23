@@ -117,7 +117,7 @@ func OpenTracingStreamServerInterceptor(tracer opentracing.Tracer, optFuncs ...O
 			serverSpan.LogFields(log.String("event", "error"), log.String("message", err.Error()))
 		}
 		if otgrpcOpts.decorator != nil {
-			otgrpcOpts.decorator(context.Background(), serverSpan, info.FullMethod, nil, nil, err)
+			otgrpcOpts.decorator(ss.Context(), serverSpan, info.FullMethod, nil, nil, err)
 		}
 		return err
 	}

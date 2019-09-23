@@ -148,7 +148,7 @@ func newOpenTracingClientStream(cs grpc.ClientStream, method string, desc *grpc.
 			SetSpanTags(clientSpan, err, true)
 		}
 		if otgrpcOpts.decorator != nil {
-			otgrpcOpts.decorator(context.Background(), clientSpan, method, nil, nil, err)
+			otgrpcOpts.decorator(cs.Context(), clientSpan, method, nil, nil, err)
 		}
 	}
 	go func() {
