@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/opentracing-contrib/go-grpc"
+	"context"
 	testpb "github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc/test/otgrpc_testing"
+	"github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go/mocktracer"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
