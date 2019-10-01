@@ -1,8 +1,9 @@
 package otgrpc
 
 import (
+	"context"
+
 	opentracing "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 )
 
 // Option instances may be used in OpenTracing(Server|Client)Interceptor
