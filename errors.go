@@ -1,6 +1,9 @@
 package otgrpc
 
 import (
+	"context"
+	"errors"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"google.golang.org/grpc/codes"
@@ -57,6 +60,9 @@ func SetSpanTags(span opentracing.Span, err error, client bool) {
 	code := codes.Unknown
 	if s, ok := status.FromError(err); ok {
 		code = s.Code()
+	} else if errors.Is(err, context.Canceled) {
+		code = codes.Canceled
+		err = nil // Someone else canceled this operation - we should not flag it as an error.
 	}
 	span.SetTag("response_code", code)
 	span.SetTag("response_class", c)
