@@ -1,8 +1,9 @@
 package otgrpc
 
 import (
-	opentracing "github.com/opentracing/opentracing-go"
 	"context"
+
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"google.golang.org/grpc"
@@ -14,9 +15,9 @@ import (
 //
 // For example:
 //
-//     s := grpc.NewServer(
-//         ...,  // (existing ServerOptions)
-//         grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer)))
+//	s := grpc.NewServer(
+//	    ...,  // (existing ServerOptions)
+//	    grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer)))
 //
 // All gRPC server spans will look for an OpenTracing SpanContext in the gRPC
 // metadata; if found, the server span will act as the ChildOf that RPC
@@ -76,9 +77,9 @@ func OpenTracingServerInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 //
 // For example:
 //
-//     s := grpc.NewServer(
-//         ...,  // (existing ServerOptions)
-//         grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+//	s := grpc.NewServer(
+//	    ...,  // (existing ServerOptions)
+//	    grpc.StreamInterceptor(otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 //
 // All gRPC server spans will look for an OpenTracing SpanContext in the gRPC
 // metadata; if found, the server span will act as the ChildOf that RPC
@@ -137,5 +138,5 @@ func extractSpanContext(ctx context.Context, tracer opentracing.Tracer) (opentra
 	if !ok {
 		md = metadata.New(nil)
 	}
-	return tracer.Extract(opentracing.HTTPHeaders, metadataReaderWriter{md})
+	return tracer.Extract(opentracing.TextMap, metadataReaderWriter{md})
 }

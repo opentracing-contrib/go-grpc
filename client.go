@@ -1,12 +1,12 @@
 package otgrpc
 
 import (
+	"context"
 	"io"
 	"runtime"
 	"sync/atomic"
 
 	opentracing "github.com/opentracing/opentracing-go"
-	"context"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"google.golang.org/grpc"
@@ -18,10 +18,10 @@ import (
 //
 // For example:
 //
-//     conn, err := grpc.Dial(
-//         address,
-//         ...,  // (existing DialOptions)
-//         grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)))
+//	conn, err := grpc.Dial(
+//	    address,
+//	    ...,  // (existing DialOptions)
+//	    grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)))
 //
 // All gRPC client spans will inject the OpenTracing SpanContext into the gRPC
 // metadata; they will also look in the context.Context for an active
@@ -80,10 +80,10 @@ func OpenTracingClientInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 //
 // For example:
 //
-//     conn, err := grpc.Dial(
-//         address,
-//         ...,  // (existing DialOptions)
-//         grpc.WithStreamInterceptor(otgrpc.OpenTracingStreamClientInterceptor(tracer)))
+//	conn, err := grpc.Dial(
+//	    address,
+//	    ...,  // (existing DialOptions)
+//	    grpc.WithStreamInterceptor(otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 //
 // All gRPC client spans will inject the OpenTracing SpanContext into the gRPC
 // metadata; they will also look in the context.Context for an active
@@ -235,10 +235,11 @@ func injectSpanContext(ctx context.Context, tracer opentracing.Tracer, clientSpa
 		md = md.Copy()
 	}
 	mdWriter := metadataReaderWriter{md}
-	err := tracer.Inject(clientSpan.Context(), opentracing.HTTPHeaders, mdWriter)
+	err := tracer.Inject(clientSpan.Context(), opentracing.TextMap, mdWriter)
 	// We have no better place to record an error than the Span itself :-/
 	if err != nil {
 		clientSpan.LogFields(log.String("event", "Tracer.Inject() failed"), log.Error(err))
 	}
+
 	return metadata.NewOutgoingContext(ctx, md)
 }
