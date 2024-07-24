@@ -132,9 +132,11 @@ func assertChildParentSpans(t *testing.T, tracer *mocktracer.MockTracer) {
 	if len(spans) != 2 {
 		t.Fatalf("Incorrect span length")
 	}
-	parent := spans[1]
-	child := spans[0]
-	assert.Equal(t, child.ParentID, parent.Context().(mocktracer.MockSpanContext).SpanID)
+	clientSpan := spans[1]
+	serverSpan := spans[0]
+	assert.Equal(t, serverSpan.ParentID, clientSpan.Context().(mocktracer.MockSpanContext).SpanID)
+	assert.Nil(t, clientSpan.Tag("error"))
+	assert.Empty(t, clientSpan.Logs())
 }
 
 func TestUnaryOpenTracing(t *testing.T) {
