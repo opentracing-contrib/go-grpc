@@ -1,8 +1,12 @@
-module github.com/opentracing-contrib/go-grpc
+module github.com/opentracing-contrib/go-grpc/test
 
 go 1.21.0
 
+replace github.com/opentracing-contrib/go-grpc => ../
+
 require (
+	github.com/golang/protobuf v1.5.4
+	github.com/opentracing-contrib/go-grpc v0.0.0-00010101000000-000000000000
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.65.0
