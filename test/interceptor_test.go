@@ -28,7 +28,7 @@ func (s *testServer) UnaryCall(_ context.Context, in *testpb.SimpleRequest) (*te
 }
 
 func (s *testServer) StreamingOutputCall(in *testpb.SimpleRequest, stream testpb.TestService_StreamingOutputCallServer) error {
-	for i := 0; i < streamLength; i++ {
+	for range streamLength {
 		if err := stream.Send(&testpb.SimpleResponse{Payload: in.Payload}); err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func TestStreamingInputCallOpenTracing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed StreamingInputCall: %v", err)
 	}
-	for i := 0; i < streamLength; i++ {
+	for range streamLength {
 		if err = stream.Send(&testpb.SimpleRequest{Payload: payload}); err != nil {
 			t.Fatalf("Failed StreamingInputCall: %v", err)
 		}
@@ -249,7 +249,7 @@ func TestStreamingBidirectionalCallOpenTracing(t *testing.T) {
 	}
 	errChan := make(chan error, 1)
 	go func() {
-		for i := 0; i < streamLength; i++ {
+		for range streamLength {
 			if err := stream.Send(&testpb.SimpleRequest{Payload: payload}); err != nil {
 				errChan <- err
 				return
