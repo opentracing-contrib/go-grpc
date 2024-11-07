@@ -1,6 +1,7 @@
 package interceptor_test
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -9,8 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"context"
+
 	testpb "github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc/test/otgrpc_testing"
-	"github.com/opentracing-contrib/go-grpc"
+	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"google.golang.org/grpc"
 )
@@ -266,5 +268,6 @@ func TestStreamingContextCancellationOpenTracing(t *testing.T) {
 	parent := spans[0]
 	child := spans[1]
 	assert.Equal(t, child.ParentID, parent.Context().(mocktracer.MockSpanContext).SpanID)
-	assert.True(t, parent.Tag("error").(bool))
+	assert.Equal(t, fmt.Sprint(parent.Tag("response_code")), "Canceled")
+	assert.Nil(t, parent.Tag("error"))
 }
