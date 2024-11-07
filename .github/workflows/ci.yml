@@ -30,4 +30,4 @@ jobs:
           go-version: stable
 
       - name: Run Unit Tests
-        run: go test -v ./...
+        run: go test ./... -race -shuffle=on -v
