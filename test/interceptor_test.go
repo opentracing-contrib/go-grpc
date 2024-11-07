@@ -1,6 +1,8 @@
 package interceptor_test
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net"
 	"testing"
@@ -8,11 +10,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"context"
-	testpb "github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc/test/otgrpc_testing"
-	"github.com/opentracing-contrib/go-grpc"
+	otgrpc "github.com/opentracing-contrib/go-grpc"
+	testpb "github.com/opentracing-contrib/go-grpc/test/otgrpc_testing"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -21,13 +23,13 @@ const (
 
 type testServer struct{}
 
-func (s *testServer) UnaryCall(ctx context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
-	return &testpb.SimpleResponse{in.Payload}, nil
+func (s *testServer) UnaryCall(_ context.Context, in *testpb.SimpleRequest) (*testpb.SimpleResponse, error) {
+	return &testpb.SimpleResponse{Payload: in.Payload}, nil
 }
 
 func (s *testServer) StreamingOutputCall(in *testpb.SimpleRequest, stream testpb.TestService_StreamingOutputCallServer) error {
 	for i := 0; i < streamLength; i++ {
-		if err := stream.Send(&testpb.SimpleResponse{in.Payload}); err != nil {
+		if err := stream.Send(&testpb.SimpleResponse{Payload: in.Payload}); err != nil {
 			return err
 		}
 	}
@@ -38,7 +40,7 @@ func (s *testServer) StreamingInputCall(stream testpb.TestService_StreamingInput
 	sum := int32(0)
 	for {
 		in, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -46,19 +48,19 @@ func (s *testServer) StreamingInputCall(stream testpb.TestService_StreamingInput
 		}
 		sum += in.Payload
 	}
-	return stream.SendAndClose(&testpb.SimpleResponse{sum})
+	return stream.SendAndClose(&testpb.SimpleResponse{Payload: sum})
 }
 
 func (s *testServer) StreamingBidirectionalCall(stream testpb.TestService_StreamingBidirectionalCallServer) error {
 	for {
 		in, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		if err = stream.Send(&testpb.SimpleResponse{in.Payload}); err != nil {
+		if err = stream.Send(&testpb.SimpleResponse{Payload: in.Payload}); err != nil {
 			return err
 		}
 	}
@@ -80,6 +82,7 @@ type test struct {
 }
 
 func newTest(t *testing.T, e env) *test {
+	t.Helper()
 	te := &test{
 		t: t,
 		e: e,
@@ -99,10 +102,22 @@ func newTest(t *testing.T, e env) *test {
 	}
 	te.srv = grpc.NewServer(sOpts...)
 	testpb.RegisterTestServiceServer(te.srv, &testServer{})
-	go te.srv.Serve(lis)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- te.srv.Serve(lis)
+	}()
+
+	// Check for immediate server startup errors
+	select {
+	case errServe := <-errChan:
+		if errServe != nil {
+			te.t.Fatalf("Failed to serve: %v", errServe)
+		}
+	default:
+	}
 
 	// Set up a connection to the server.
-	cOpts := []grpc.DialOption{grpc.WithInsecure()}
+	cOpts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if e.unaryClientInt != nil {
 		cOpts = append(cOpts, grpc.WithUnaryInterceptor(e.unaryClientInt))
 	}
@@ -114,7 +129,7 @@ func newTest(t *testing.T, e env) *test {
 		te.t.Fatalf("Failed to parse listener address: %v", err)
 	}
 	srvAddr := "localhost:" + port
-	te.cc, err = grpc.Dial(srvAddr, cOpts...)
+	te.cc, err = grpc.NewClient(srvAddr, cOpts...)
 	if err != nil {
 		te.t.Fatalf("Dial(%q) = %v", srvAddr, err)
 	}
@@ -127,6 +142,7 @@ func (te *test) tearDown() {
 }
 
 func assertChildParentSpans(t *testing.T, tracer *mocktracer.MockTracer) {
+	t.Helper()
 	spans := tracer.FinishedSpans()
 	assert.Equal(t, 2, len(spans))
 	if len(spans) != 2 {
@@ -134,10 +150,15 @@ func assertChildParentSpans(t *testing.T, tracer *mocktracer.MockTracer) {
 	}
 	parent := spans[1]
 	child := spans[0]
-	assert.Equal(t, child.ParentID, parent.Context().(mocktracer.MockSpanContext).SpanID)
+	parentContext, ok := parent.Context().(mocktracer.MockSpanContext)
+	if !ok {
+		t.Fatalf("Failed to assert parent context as mocktracer.MockSpanContext")
+	}
+	assert.Equal(t, child.ParentID, parentContext.SpanID)
 }
 
 func TestUnaryOpenTracing(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	e := env{
 		unaryClientInt: otgrpc.OpenTracingClientInterceptor(tracer),
@@ -147,7 +168,7 @@ func TestUnaryOpenTracing(t *testing.T) {
 	defer te.tearDown()
 
 	payload := int32(0)
-	resp, err := te.c.UnaryCall(context.Background(), &testpb.SimpleRequest{payload})
+	resp, err := te.c.UnaryCall(context.Background(), &testpb.SimpleRequest{Payload: payload})
 	if err != nil {
 		t.Fatalf("Failed UnaryCall: %v", err)
 	}
@@ -156,6 +177,7 @@ func TestUnaryOpenTracing(t *testing.T) {
 }
 
 func TestStreamingOutputCallOpenTracing(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	e := env{
 		streamClientInt: otgrpc.OpenTracingStreamClientInterceptor(tracer),
@@ -165,13 +187,13 @@ func TestStreamingOutputCallOpenTracing(t *testing.T) {
 	defer te.tearDown()
 
 	payload := int32(0)
-	stream, err := te.c.StreamingOutputCall(context.Background(), &testpb.SimpleRequest{payload})
+	stream, err := te.c.StreamingOutputCall(context.Background(), &testpb.SimpleRequest{Payload: payload})
 	if err != nil {
 		t.Fatalf("Failed StreamingOutputCall: %v", err)
 	}
 	for {
 		resp, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -183,6 +205,7 @@ func TestStreamingOutputCallOpenTracing(t *testing.T) {
 }
 
 func TestStreamingInputCallOpenTracing(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	e := env{
 		streamClientInt: otgrpc.OpenTracingStreamClientInterceptor(tracer),
@@ -193,8 +216,11 @@ func TestStreamingInputCallOpenTracing(t *testing.T) {
 
 	payload := int32(1)
 	stream, err := te.c.StreamingInputCall(context.Background())
+	if err != nil {
+		t.Fatalf("Failed StreamingInputCall: %v", err)
+	}
 	for i := 0; i < streamLength; i++ {
-		if err = stream.Send(&testpb.SimpleRequest{payload}); err != nil {
+		if err = stream.Send(&testpb.SimpleRequest{Payload: payload}); err != nil {
 			t.Fatalf("Failed StreamingInputCall: %v", err)
 		}
 	}
@@ -207,6 +233,7 @@ func TestStreamingInputCallOpenTracing(t *testing.T) {
 }
 
 func TestStreamingBidirectionalCallOpenTracing(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	e := env{
 		streamClientInt: otgrpc.OpenTracingStreamClientInterceptor(tracer),
@@ -220,17 +247,27 @@ func TestStreamingBidirectionalCallOpenTracing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed StreamingInputCall: %v", err)
 	}
+	errChan := make(chan error, 1)
 	go func() {
 		for i := 0; i < streamLength; i++ {
-			if err := stream.Send(&testpb.SimpleRequest{payload}); err != nil {
-				t.Fatalf("Failed StreamingInputCall: %v", err)
+			if err := stream.Send(&testpb.SimpleRequest{Payload: payload}); err != nil {
+				errChan <- err
+				return
 			}
 		}
-		stream.CloseSend()
+		if err := stream.CloseSend(); err != nil {
+			errChan <- err
+			return
+		}
+		errChan <- nil
 	}()
+
+	if err := <-errChan; err != nil {
+		t.Fatalf("Failed StreamingInputCall: %v", err)
+	}
 	for {
 		resp, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -242,6 +279,7 @@ func TestStreamingBidirectionalCallOpenTracing(t *testing.T) {
 }
 
 func TestStreamingContextCancellationOpenTracing(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	e := env{
 		streamClientInt: otgrpc.OpenTracingStreamClientInterceptor(tracer),
@@ -252,7 +290,7 @@ func TestStreamingContextCancellationOpenTracing(t *testing.T) {
 
 	payload := int32(0)
 	ctx, cancel := context.WithCancel(context.Background())
-	_, err := te.c.StreamingOutputCall(ctx, &testpb.SimpleRequest{payload})
+	_, err := te.c.StreamingOutputCall(ctx, &testpb.SimpleRequest{Payload: payload})
 	if err != nil {
 		t.Fatalf("Failed StreamingOutputCall: %v", err)
 	}
@@ -265,6 +303,14 @@ func TestStreamingContextCancellationOpenTracing(t *testing.T) {
 	}
 	parent := spans[0]
 	child := spans[1]
-	assert.Equal(t, child.ParentID, parent.Context().(mocktracer.MockSpanContext).SpanID)
-	assert.True(t, parent.Tag("error").(bool))
+	parentContext, ok := parent.Context().(mocktracer.MockSpanContext)
+	if !ok {
+		t.Fatalf("Failed to assert parent context as mocktracer.MockSpanContext")
+	}
+	assert.Equal(t, child.ParentID, parentContext.SpanID)
+	errorTag, ok := parent.Tag("error").(bool)
+	if !ok {
+		t.Fatalf("Failed to assert error tag as bool")
+	}
+	assert.True(t, errorTag)
 }

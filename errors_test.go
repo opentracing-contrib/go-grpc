@@ -16,6 +16,7 @@ const (
 )
 
 func TestSpanTags(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	for code := firstCode; code <= lastCode; code++ {
 		// Client error

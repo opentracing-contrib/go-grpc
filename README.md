@@ -5,7 +5,7 @@ systems in Go.
 
 ## Installation
 
-```
+```shell
 go get github.com/opentracing-contrib/go-grpc
 ```
 
@@ -54,4 +54,3 @@ s := grpc.NewServer(
 
 // All future RPC activity involving `s` will be automatically traced.
 ```
-
