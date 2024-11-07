@@ -2,8 +2,6 @@ module github.com/opentracing-contrib/go-grpc
 
 go 1.22.7
 
-toolchain go1.23.3
-
 require (
 	github.com/golang/protobuf v1.5.4
 	github.com/opentracing/opentracing-go v1.2.0
