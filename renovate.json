@@ -1,21 +1,7 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "automerge": true,
-  "automergeStrategy": "squash",
-  "commitBodyTable": true,
-  "configMigration": true,
-  "extends": [
-    "config:recommended",
-    ":gitSignOff",
-    ":disableRateLimiting",
-    ":semanticCommitsDisabled"
-  ],
-  "labels": [
-    "dependencies"
-  ],
-  "postUpdateOptions": [
-    "gomodTidy",
-    "gomodUpdateImportPaths"
-  ],
-  "rebaseWhen": "behind-base-branch"
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"github>opentracing-contrib/common",
+		"schedule:daily"
+	]
 }
