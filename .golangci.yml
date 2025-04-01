@@ -46,7 +46,7 @@ linters:
     - usestdlibvars
     - wastedassign
     - whitespace
-    # - wrapcheck
+    - wrapcheck
   settings:
     govet:
       enable-all: true
