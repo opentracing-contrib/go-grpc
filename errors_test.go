@@ -3,9 +3,8 @@ package otgrpc
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/opentracing/opentracing-go/mocktracer"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

@@ -8,11 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	testpb "github.com/opentracing-contrib/go-grpc/test/otgrpc_testing"
 	"github.com/opentracing/opentracing-go/mocktracer"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
