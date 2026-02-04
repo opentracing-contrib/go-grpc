@@ -2,7 +2,7 @@ module github.com/opentracing-contrib/go-grpc
 
 go 1.24.0
 
-toolchain go1.24.11
+toolchain go1.25.7
 
 require (
 	github.com/opentracing/opentracing-go v1.2.0
