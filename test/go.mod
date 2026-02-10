@@ -2,7 +2,7 @@ module github.com/opentracing-contrib/go-grpc/test
 
 go 1.24.0
 
-toolchain go1.24.11
+toolchain go1.26.0
 
 replace github.com/opentracing-contrib/go-grpc => ../
 
