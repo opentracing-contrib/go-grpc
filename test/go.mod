@@ -11,7 +11,7 @@ require (
 	github.com/opentracing-contrib/go-grpc v0.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.2
 )
 
 require (
