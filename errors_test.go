@@ -3,9 +3,8 @@ package otgrpc
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/opentracing/opentracing-go/mocktracer"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,6 +15,7 @@ const (
 )
 
 func TestSpanTags(t *testing.T) {
+	t.Parallel()
 	tracer := mocktracer.New()
 	for code := firstCode; code <= lastCode; code++ {
 		// Client error
