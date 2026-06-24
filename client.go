@@ -164,7 +164,7 @@ func newOpenTracingClientStream(ctx context.Context, cs grpc.ClientStream, metho
 			//    RecvMsg() call has returned.
 			// 2. ClientStream implementations cancel their context as soon as an error is received in Header(),
 			//    RecvMsg(), SendMsg() or CloseSend(). This causes a race between the interceptor logging the
-			//    returned error and this method logging the cancelled context.
+			//    returned error and this method logging the canceled context.
 			// Using ctx avoids both of these issues.
 			finishFunc(ctx.Err())
 		}
