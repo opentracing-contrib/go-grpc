@@ -142,18 +142,32 @@ func (te *test) tearDown() {
 
 func assertChildParentSpans(t *testing.T, tracer *mocktracer.MockTracer) {
 	t.Helper()
+	parent, _ := getParentAndChildSpans(t, tracer)
+	assert.Nil(t, parent.Tag("error"))
+	assert.Empty(t, parent.Logs())
+}
+
+func getParentAndChildSpans(t *testing.T, tracer *mocktracer.MockTracer) (parent, child *mocktracer.MockSpan) {
+	t.Helper()
 	spans := tracer.FinishedSpans()
 	assert.Equal(t, 2, len(spans))
 	if len(spans) != 2 {
 		t.Fatalf("Incorrect span length")
 	}
-	parent := spans[1]
-	child := spans[0]
+
+	if spans[0].ParentID == 0 {
+		parent, child = spans[0], spans[1]
+	} else {
+		parent, child = spans[1], spans[0]
+	}
 	parentContext, ok := parent.Context().(mocktracer.MockSpanContext)
 	if !ok {
 		t.Fatalf("Failed to assert parent context as mocktracer.MockSpanContext")
 	}
+
 	assert.Equal(t, child.ParentID, parentContext.SpanID)
+
+	return parent, child
 }
 
 func TestUnaryOpenTracing(t *testing.T) {
@@ -295,18 +309,8 @@ func TestStreamingContextCancellationOpenTracing(t *testing.T) {
 	}
 	cancel()
 	time.Sleep(100 * time.Millisecond)
-	spans := tracer.FinishedSpans()
-	assert.Equal(t, 2, len(spans))
-	if len(spans) != 2 {
-		t.Fatalf("Incorrect span length")
-	}
-	parent := spans[0]
-	child := spans[1]
-	parentContext, ok := parent.Context().(mocktracer.MockSpanContext)
-	if !ok {
-		t.Fatalf("Failed to assert parent context as mocktracer.MockSpanContext")
-	}
-	assert.Equal(t, child.ParentID, parentContext.SpanID)
+
+	parent, _ := getParentAndChildSpans(t, tracer)
 	errorTag, ok := parent.Tag("error").(bool)
 	if !ok {
 		t.Fatalf("Failed to assert error tag as bool")
