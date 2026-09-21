@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   unit-tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -38,7 +38,7 @@ jobs:
         run: go test ./... -race -shuffle=on -v
 
   draft-release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: github.event_name != 'pull_request'
     steps:
       - name: Checkout Repository
